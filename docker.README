@@ -1,0 +1,2500 @@
+
+# Docker Learning Notes
+## From Beginner → Docker Compose + PostgreSQL
+
+---
+
+# 1. What is Docker?
+
+Docker is a platform used to package and run applications in isolated environments called containers.
+
+Without Docker:
+
+    Application
+        ↓
+    Requires Java
+    Requires PostgreSQL
+    Requires specific libraries
+    Requires specific configuration
+        ↓
+    "It works on my machine"
+
+With Docker:
+
+    Application
+        +
+    Dependencies
+        +
+    Configuration
+        ↓
+    Docker Image
+        ↓
+    Docker Container
+
+The goal is to make applications easier to build, run, move, and deploy consistently.
+
+---
+
+# 2. Docker Important Terms
+
+The most important Docker concepts:
+
+1. Image
+2. Container
+3. Dockerfile
+4. Docker Build
+5. Docker Registry
+6. Container Lifecycle
+7. Ports
+8. Volumes
+9. Bind Mounts
+10. Networks
+11. Docker Compose
+12. Environment Variables
+13. .env
+14. Persistent Data
+
+---
+
+# 3. Docker Image
+
+## Definition
+
+A Docker Image is a packaged, read-only template used to create containers.
+
+Example:
+
+    nginx
+    postgres:18
+    ubuntu
+    node
+    openjdk
+
+An image contains things needed to run an application:
+
+    Application
+    Dependencies
+    Libraries
+    Configuration
+    Files
+    Runtime
+
+Example:
+
+    nginx image
+        ↓
+    creates Nginx container
+
+---
+
+# 4. Docker Container
+
+## Definition
+
+A Container is a running instance of a Docker Image.
+
+Think:
+
+    Image
+      ↓
+    Container
+
+Example:
+
+    nginx image
+       ↓
+    my-nginx container
+
+One image can create multiple containers.
+
+Example:
+
+    nginx image
+       ├── container-1
+       ├── container-2
+       └── container-3
+
+---
+
+# 5. Image vs Container
+
+| Image | Container |
+|---|---|
+| Template | Running instance |
+| Read-only template | Has writable container layer |
+| Used to create containers | Runs the application |
+| Can be reused | Can be started/stopped/deleted |
+| Example: nginx | Example: my-nginx |
+
+Simple example:
+
+    Image = Blueprint
+    Container = Building created from blueprint
+
+---
+
+# 6. Docker Registry
+
+A registry stores Docker images.
+
+Example:
+
+    Docker Hub
+
+When we run:
+
+    docker pull nginx
+
+Docker downloads the Nginx image from a registry if it is not already available locally.
+
+---
+
+# 7. Check Docker Version
+
+Command:
+
+    docker --version
+
+Example:
+
+    Docker version 28.1.1
+
+---
+
+# 8. Docker Service
+
+On Linux, Docker normally runs as a system service.
+
+Check:
+
+    systemctl status docker
+
+Start:
+
+    sudo systemctl start docker
+
+Stop:
+
+    sudo systemctl stop docker
+
+Restart:
+
+    sudo systemctl restart docker
+
+Docker daemon:
+
+    dockerd
+
+The Docker CLI communicates with the Docker daemon.
+
+Architecture:
+
+    docker command
+         ↓
+    Docker CLI
+         ↓
+    Docker daemon
+         ↓
+    Containers / Images / Networks / Volumes
+
+---
+
+# 9. Docker Permission on Linux
+
+Docker socket:
+
+    /var/run/docker.sock
+
+Usually:
+
+    root docker
+
+If your user is added to the docker group:
+
+    sudo usermod -aG docker $USER
+
+Refresh current shell:
+
+    newgrp docker
+
+Then:
+
+    docker ps
+
+can work without sudo.
+
+---
+
+# 10. Docker Images
+
+List images:
+
+    docker images
+
+or:
+
+    docker image ls
+
+Example:
+
+    REPOSITORY    TAG       IMAGE ID       SIZE
+    nginx         latest    xxxxx          170MB
+
+---
+
+# 11. Pull an Image
+
+Command:
+
+    docker pull nginx
+
+This downloads the image.
+
+Usually:
+
+    Docker CLI
+       ↓
+    Docker Hub
+       ↓
+    nginx image
+       ↓
+    Local machine
+
+---
+
+# 12. Run a Container
+
+Command:
+
+    docker run nginx
+
+This generally:
+
+    1. Finds image
+    2. Downloads image if necessary
+    3. Creates container
+    4. Starts container
+
+Important:
+
+    docker run = create + start
+
+---
+
+# 13. Run in Background
+
+Command:
+
+    docker run -d nginx
+
+`-d` means:
+
+    detached mode
+
+The container runs in the background.
+
+---
+
+# 14. Give Container a Name
+
+Command:
+
+    docker run -d --name my-nginx nginx
+
+Now container name:
+
+    my-nginx
+
+Instead of a random Docker-generated name.
+
+---
+
+# 15. List Running Containers
+
+Command:
+
+    docker ps
+
+Shows only running containers.
+
+---
+
+# 16. List All Containers
+
+Command:
+
+    docker ps -a
+
+Shows:
+
+    Running
+    Stopped
+    Exited
+    Created
+
+Example:
+
+    docker ps -a
+
+---
+
+# 17. Container Lifecycle
+
+Basic lifecycle:
+
+    Image
+      ↓
+    docker create
+      ↓
+    Created
+      ↓
+    docker start
+      ↓
+    Running
+      ↓
+    docker stop
+      ↓
+    Stopped
+      ↓
+    docker start
+      ↓
+    Running
+
+Delete:
+
+    docker rm container-name
+
+---
+
+# 18. docker create
+
+Creates a container but does NOT start it.
+
+Example:
+
+    docker create --name test-nginx nginx
+
+Result:
+
+    Container created
+    Container not running
+
+Start:
+
+    docker start test-nginx
+
+---
+
+# 19. docker run
+
+Creates and starts a new container.
+
+Example:
+
+    docker run -d --name my-nginx nginx
+
+Equivalent conceptually to:
+
+    docker create ...
+    docker start ...
+
+---
+
+# 20. Stop a Container
+
+Command:
+
+    docker stop my-nginx
+
+The container stops but still exists.
+
+Check:
+
+    docker ps -a
+
+---
+
+# 21. Start a Stopped Container
+
+Command:
+
+    docker start my-nginx
+
+The existing container starts again.
+
+---
+
+# 22. Remove a Container
+
+Command:
+
+    docker rm my-nginx
+
+The container is deleted.
+
+Important:
+
+    Removing container
+          DOES NOT
+    automatically remove image
+
+Image remains.
+
+---
+
+# 23. Force Remove
+
+Command:
+
+    docker rm -f my-nginx
+
+Useful when the container is running.
+
+`-f` = force
+
+---
+
+# 24. Container Shell
+
+Enter a running container:
+
+    docker exec -it my-nginx bash
+
+Meaning:
+
+    exec = execute command
+    -i   = interactive
+    -t   = terminal
+    bash = start Bash shell
+
+Inside:
+
+    root@container:/#
+
+---
+
+# 25. Exit Container
+
+Inside container:
+
+    exit
+
+This exits the shell.
+
+IMPORTANT:
+
+    exit
+
+usually does NOT mean delete container.
+
+It only exits the shell session.
+
+---
+
+# 26. Files Inside Containers
+
+Example:
+
+    /usr/share/nginx/html
+
+For Nginx, HTML files are stored there.
+
+Inside container:
+
+    pwd
+
+Shows current directory.
+
+List files:
+
+    ls
+
+Detailed:
+
+    ls -la
+
+---
+
+# 27. Container Storage
+
+A container has a writable layer.
+
+Example:
+
+    Container
+       ↓
+    create file
+       ↓
+    file exists
+
+If the container is stopped:
+
+    file remains
+
+If the container is deleted:
+
+    file disappears
+
+Therefore:
+
+    Container storage
+          ↓
+    tied to container
+
+For important data:
+
+    Use Volume
+    or
+    Bind Mount
+
+---
+
+# 28. Dockerfile
+
+A Dockerfile is a text file containing instructions for building a Docker image.
+
+Example:
+
+    Dockerfile
+
+Content:
+
+    FROM nginx:latest
+
+    COPY index.html /usr/share/nginx/html/index.html
+
+---
+
+# 29. FROM
+
+Example:
+
+    FROM nginx:latest
+
+Means:
+
+    Start from nginx image.
+
+Another example:
+
+    FROM eclipse-temurin:17-jdk
+
+Means:
+
+    Start from Java 17 image.
+
+---
+
+# 30. COPY
+
+Example:
+
+    COPY index.html /usr/share/nginx/html/index.html
+
+Meaning:
+
+    Copy file from build context
+        ↓
+    Into image
+
+Diagram:
+
+    Linux project
+        │
+        └── index.html
+                ↓
+             COPY
+                ↓
+    Docker Image
+        │
+        └── /usr/share/nginx/html/index.html
+
+---
+
+# 31. Build an Image
+
+Inside directory containing Dockerfile:
+
+    docker build -t my-nginx-app:1.0 .
+
+Meaning:
+
+    docker build
+        ↓
+    build image
+
+    -t
+        ↓
+    give image name/tag
+
+    my-nginx-app:1.0
+        ↓
+    image name + tag
+
+    .
+        ↓
+    current directory = build context
+
+---
+
+# 32. Image Tags
+
+Example:
+
+    my-nginx-app:1.0
+
+Breakdown:
+
+    my-nginx-app
+         ↓
+    image repository/name
+
+    1.0
+         ↓
+    tag/version
+
+Example:
+
+    my-nginx-app:1.0
+    my-nginx-app:1.1
+    my-nginx-app:2.0
+
+`latest` is also a commonly used tag:
+
+    nginx:latest
+
+---
+
+# 33. Docker Build Context
+
+Command:
+
+    docker build -t my-app .
+
+The final `.` means:
+
+    current directory
+
+Docker can use files from the build context.
+
+Example:
+
+    project/
+    ├── Dockerfile
+    └── index.html
+
+Run:
+
+    docker build -t my-app .
+
+Docker can COPY:
+
+    index.html
+
+because it is inside the build context.
+
+---
+
+# 34. Docker Build Cache
+
+Docker builds images in layers.
+
+Example:
+
+    FROM nginx:latest
+        ↓
+    COPY index.html ...
+        ↓
+    Final image
+
+If nothing changed:
+
+    CACHED
+
+If index.html changes:
+
+    FROM nginx
+       ↓
+    cached
+
+    COPY index.html
+       ↓
+    rebuilt
+
+This makes builds faster.
+
+---
+
+# 35. Image History
+
+Command:
+
+    docker image history my-nginx-app:1.0
+
+Shows image layers.
+
+Example:
+
+    COPY index.html
+    CMD
+    EXPOSE
+    ENTRYPOINT
+    RUN
+    Base image
+
+---
+
+# 36. Important Image/Container Concept
+
+Suppose:
+
+    Container A
+       ↓
+    uses image version 1
+
+Then rebuild the same tag:
+
+    my-nginx-app:1.0
+
+A new image ID may be created.
+
+Existing Container A does NOT automatically change to the new image.
+
+You need to recreate the container.
+
+Typical process:
+
+    docker rm -f old-container
+
+    docker run ... my-nginx-app:1.0
+
+---
+
+# 37. Ports
+
+Docker containers have their own network namespace.
+
+Example:
+
+    Nginx listens inside container:
+
+    port 80
+
+If we want to access it from Linux host:
+
+    -p 8081:80
+
+Meaning:
+
+    HOST               CONTAINER
+
+    8081   ─────────→   80
+
+Diagram:
+
+    Browser
+       ↓
+    localhost:8081
+       ↓
+    Docker
+       ↓
+    container:80
+       ↓
+    Nginx
+
+---
+
+# 38. Port Mapping
+
+Command:
+
+    docker run -d \
+      --name my-nginx \
+      -p 8081:80 \
+      nginx
+
+Then browser:
+
+    http://localhost:8081
+
+---
+
+# 39. Why 8081 Instead of 8080?
+
+If another application already uses:
+
+    localhost:8080
+
+Docker cannot also bind:
+
+    host:8080
+
+Example error:
+
+    address already in use
+
+So:
+
+    -p 8081:80
+
+means:
+
+    Host 8081 → Container 80
+
+---
+
+# 40. PORTS Column
+
+Example:
+
+    80/tcp
+
+Means:
+
+    Port 80 exists inside container.
+
+It does NOT mean host port 80 is published.
+
+Example:
+
+    0.0.0.0:8081->80/tcp
+
+Means:
+
+    Host 8081 → Container 80
+
+---
+
+# 41. Container Port vs Host Port
+
+Very important:
+
+    Host
+    localhost:8081
+         ↓
+    Container
+    :80
+
+But container-to-container communication:
+
+    Container A
+         ↓
+    web-server:80
+         ↓
+    Container B
+
+The host port is not needed.
+
+---
+
+# 42. Docker Volume
+
+A Docker Volume is persistent storage managed by Docker.
+
+Create:
+
+    docker volume create nginx-data
+
+List:
+
+    docker volume ls
+
+Inspect:
+
+    docker volume inspect nginx-data
+
+---
+
+# 43. Volume Mount
+
+Example:
+
+    docker run -d \
+      --name my-nginx \
+      -v nginx-data:/usr/share/nginx/html \
+      nginx
+
+Meaning:
+
+    Docker volume
+    nginx-data
+         ↓
+    Container
+    /usr/share/nginx/html
+
+---
+
+# 44. Why Volumes?
+
+Without volume:
+
+    Container
+       ↓
+    database data
+       ↓
+    container deleted
+       ↓
+    data may be lost
+
+With volume:
+
+    PostgreSQL container
+          ↓
+    postgres-data volume
+          ↓
+    container deleted
+          ↓
+    volume remains
+          ↓
+    new PostgreSQL container
+          ↓
+    same data
+
+---
+
+# 45. Volume Persistence Test
+
+Example:
+
+    Container 1
+       ↓
+    writes file
+       ↓
+    volume
+       ↓
+    Container 1 deleted
+       ↓
+    volume remains
+       ↓
+    Container 2
+       ↓
+    same file available
+
+---
+
+# 46. docker compose down vs down -v
+
+Very important.
+
+    docker compose down
+
+Usually removes:
+
+    Containers
+    Compose network
+
+But named volumes remain.
+
+    docker compose down -v
+
+Removes:
+
+    Containers
+    Network
+    Compose-managed volumes
+
+BE CAREFUL with:
+
+    docker compose down -v
+
+especially when working with databases.
+
+---
+
+# 47. Bind Mount
+
+A Bind Mount connects a real directory from your Linux machine to a container.
+
+Example:
+
+    Linux folder:
+    ./html
+
+        ↓
+
+    Container:
+    /usr/share/nginx/html
+
+Command:
+
+    docker run -d \
+      --name my-nginx-bind \
+      -p 8081:80 \
+      -v "$(pwd)/html:/usr/share/nginx/html" \
+      nginx
+
+---
+
+# 48. Bind Mount Diagram
+
+    Linux machine
+
+    nginx-practice/
+        └── html/
+            └── index.html
+                  │
+                  │ bind mount
+                  ▼
+    Container
+        /usr/share/nginx/html/
+            └── index.html
+                  │
+                  ▼
+                Nginx
+
+If Linux file changes:
+
+    Linux index.html
+          ↓
+    container sees change
+          ↓
+    browser sees change
+
+---
+
+# 49. Volume vs Bind Mount
+
+| Docker Volume | Bind Mount |
+|---|---|
+| Managed by Docker | Managed by user |
+| Storage location controlled by Docker | User chooses directory |
+| Good for databases | Good for development files |
+| Persistent | Persistent |
+| Example: postgres-data | Example: ./html |
+
+Simple:
+
+    Volume:
+
+    Docker
+      ↓
+    storage
+
+    Bind Mount:
+
+    Your Linux folder
+      ↓
+    container
+
+---
+
+# 50. Docker Network
+
+Docker networks allow containers to communicate.
+
+List networks:
+
+    docker network ls
+
+Default networks usually include:
+
+    bridge
+    host
+    none
+
+---
+
+# 51. Create Network
+
+Command:
+
+    docker network create practice-network
+
+Now:
+
+    practice-network
+        ↓
+    containers can join
+
+---
+
+# 52. Connect Container to Network
+
+Example:
+
+    docker run -d \
+      --name web-server \
+      --network practice-network \
+      nginx
+
+Another:
+
+    docker run -d \
+      --name client \
+      --network practice-network \
+      nginx
+
+Diagram:
+
+    practice-network
+          │
+       ┌──┴───┐
+       ↓      ↓
+    client   web-server
+
+---
+
+# 53. Inspect Network
+
+Command:
+
+    docker network inspect practice-network
+
+Shows information such as:
+
+    subnet
+    gateway
+    connected containers
+    container IP addresses
+
+Example:
+
+    web-server → 172.18.0.2
+    client     → 172.18.0.3
+
+Do NOT normally hard-code these IPs.
+
+---
+
+# 54. Container-to-Container Communication
+
+If two containers are on the same user-defined network:
+
+    client
+       │
+       │
+       ▼
+    web-server
+
+Inside client:
+
+    curl http://web-server
+
+Docker resolves:
+
+    web-server
+        ↓
+    container IP
+
+This is Docker's internal DNS/service-name resolution.
+
+---
+
+# 55. Why Not localhost?
+
+Inside `client`:
+
+    localhost
+
+means:
+
+    client itself
+
+It does NOT mean:
+
+    web-server
+
+Correct:
+
+    http://web-server
+
+Incorrect for another container:
+
+    http://localhost
+
+---
+
+# 56. Container-to-Container vs Host-to-Container
+
+Host to container:
+
+    Browser
+       ↓
+    localhost:8081
+       ↓
+    container:80
+
+Container to container:
+
+    client
+       ↓
+    web-server:80
+
+No host port is required for the second case.
+
+---
+
+# 57. Docker Compose
+
+Docker Compose allows us to define multiple services in a YAML file.
+
+Instead of:
+
+    docker network create ...
+
+    docker run ...
+
+    docker run ...
+
+we define:
+
+    compose.yaml
+
+and run:
+
+    docker compose up -d
+
+---
+
+# 58. Docker Compose File
+
+Basic example:
+
+    services:
+      web:
+        image: nginx
+        ports:
+          - "8082:80"
+
+---
+
+# 59. Compose Service
+
+Example:
+
+    services:
+      web:
+        image: nginx
+
+`web` is the service name.
+
+The service name can also become a hostname for communication between services.
+
+Example:
+
+    http://web
+
+---
+
+# 60. Docker Compose Network
+
+If Compose contains:
+
+    services:
+      web:
+        image: nginx
+
+      client:
+        image: nginx
+
+Compose automatically creates a default network.
+
+Example:
+
+    compose-practice_default
+
+Both services join that network.
+
+Diagram:
+
+    compose-practice_default
+            │
+        ┌───┴────┐
+        ↓        ↓
+       web     client
+
+---
+
+# 61. Compose Service Communication
+
+Inside client:
+
+    curl http://web
+
+Why?
+
+Because:
+
+    web
+
+is the service name.
+
+Docker Compose provides DNS resolution.
+
+---
+
+# 62. Docker Compose Commands
+
+Start:
+
+    docker compose up
+
+Start in background:
+
+    docker compose up -d
+
+Stop/remove:
+
+    docker compose down
+
+Show services:
+
+    docker compose ps
+
+Show all including stopped:
+
+    docker compose ps -a
+
+Validate/render configuration:
+
+    docker compose config
+
+---
+
+# 63. Compose Logs
+
+Useful command:
+
+    docker compose logs
+
+Specific service:
+
+    docker compose logs postgres
+
+Follow logs:
+
+    docker compose logs -f postgres
+
+`-f` means follow.
+
+---
+
+# 64. Compose Exec
+
+Execute command inside service:
+
+    docker compose exec postgres psql ...
+
+Example:
+
+    docker compose exec client bash
+
+This is similar to:
+
+    docker exec -it container-name bash
+
+But Compose uses the service.
+
+---
+
+# 65. PostgreSQL with Docker Compose
+
+Example:
+
+    services:
+      postgres:
+        image: postgres:18
+
+        environment:
+          POSTGRES_DB: moneylog_db
+          POSTGRES_USER: moneylog_user
+          POSTGRES_PASSWORD: moneylog123
+
+        volumes:
+          - postgres-data:/var/lib/postgresql
+
+    volumes:
+      postgres-data:
+
+---
+
+# 66. PostgreSQL Environment Variables
+
+For the official PostgreSQL image:
+
+    POSTGRES_DB
+
+Database name.
+
+    POSTGRES_USER
+
+Database user.
+
+    POSTGRES_PASSWORD
+
+Database password.
+
+Example:
+
+    POSTGRES_DB=moneylog_db
+    POSTGRES_USER=moneylog_user
+    POSTGRES_PASSWORD=moneylog123
+
+---
+
+# 67. PostgreSQL Port
+
+PostgreSQL normally listens on:
+
+    5432
+
+If Compose contains:
+
+    ports:
+      - "5432:5432"
+
+then:
+
+    Linux host 5432
+          ↓
+    PostgreSQL container 5432
+
+But if there is NO ports section:
+
+    5432/tcp
+
+PostgreSQL is still reachable by other containers on the same Docker network.
+
+---
+
+# 68. PostgreSQL Container-to-Container Connection
+
+Suppose:
+
+    postgres:
+      image: postgres:18
+
+Another service:
+
+    client:
+      image: postgres:18
+
+Both are on:
+
+    compose-practice_default
+
+Then client can connect using:
+
+    postgres:5432
+
+Example:
+
+    psql \
+      -h postgres \
+      -U moneylog_user \
+      -d moneylog_db
+
+Important:
+
+    -h postgres
+
+`postgres` is the Compose service name.
+
+NOT:
+
+    localhost
+
+NOT:
+
+    changing container IP
+
+---
+
+# 69. PostgreSQL Persistence
+
+PostgreSQL should use persistent storage.
+
+Example:
+
+    volumes:
+      postgres-data:
+
+And:
+
+    postgres:
+      volumes:
+        - postgres-data:/var/lib/postgresql
+
+Architecture:
+
+    PostgreSQL container
+          │
+          ▼
+    postgres-data
+          │
+          ▼
+    persistent database storage
+
+Container can be removed without automatically removing the named volume.
+
+---
+
+# 70. depends_on
+
+Example:
+
+    client:
+      image: postgres:18
+      depends_on:
+        - postgres
+
+Means:
+
+    Start postgres service before client service.
+
+Important:
+
+`depends_on` does not automatically mean the database is fully ready to accept connections.
+
+It mainly controls startup ordering unless health checks are configured.
+
+---
+
+# 71. Container Main Process
+
+A very important Docker concept:
+
+A container stays alive while its main process is running.
+
+Example:
+
+    client:
+      image: postgres:18
+
+The PostgreSQL image normally tries to start PostgreSQL.
+
+If the required setup isn't provided, it can exit.
+
+We used:
+
+    command: ["sleep", "infinity"]
+
+This made the client container stay alive.
+
+Diagram:
+
+    Container
+        │
+        └── PID 1
+             │
+             └── sleep infinity
+                    │
+                    └── keeps running
+
+When PID 1 exits:
+
+    Process exits
+         ↓
+    Container stops
+
+---
+
+# 72. command in Compose
+
+Example:
+
+    command: ["sleep", "infinity"]
+
+This overrides the image's default command.
+
+Useful for practice/debugging/testing.
+
+---
+
+# 73. Environment Variables
+
+Instead of hard-coding:
+
+    POSTGRES_DB: moneylog_db
+
+we can use:
+
+    POSTGRES_DB: ${POSTGRES_DB}
+
+Compose gets the value from environment configuration.
+
+---
+
+# 74. .env File
+
+Create:
+
+    .env
+
+Example:
+
+    POSTGRES_DB=moneylog_db
+    POSTGRES_USER=moneylog_user
+    POSTGRES_PASSWORD=moneylog123
+
+Compose can automatically read `.env` in the Compose project directory for variable substitution.
+
+---
+
+# 75. Using .env in Compose
+
+`.env`:
+
+    POSTGRES_DB=moneylog_db
+    POSTGRES_USER=moneylog_user
+    POSTGRES_PASSWORD=moneylog123
+
+Compose:
+
+    services:
+      postgres:
+        image: postgres:18
+
+        environment:
+          POSTGRES_DB: ${POSTGRES_DB}
+          POSTGRES_USER: ${POSTGRES_USER}
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+Compose substitutes:
+
+    ${POSTGRES_DB}
+          ↓
+    moneylog_db
+
+---
+
+# 76. docker compose config
+
+Command:
+
+    docker compose config
+
+This renders the final Compose configuration.
+
+It is useful for checking:
+
+    YAML structure
+    variable substitution
+    networks
+    volumes
+    services
+
+For example:
+
+    ${POSTGRES_DB}
+
+can become:
+
+    moneylog_db
+
+IMPORTANT:
+
+If the configuration contains secrets, `docker compose config` can display them.
+
+Do not share production output containing real passwords.
+
+---
+
+# 77. .gitignore
+
+Secrets should generally not be committed to Git.
+
+Create:
+
+    .gitignore
+
+Add:
+
+    .env
+
+Meaning:
+
+    Git should not track .env
+
+Important:
+
+`.gitignore` does NOT hide `.env` from Docker.
+
+It only tells Git not to track it.
+
+---
+
+# 78. Important Difference
+
+`.env`
+
+    Provides configuration values to Compose.
+
+`.gitignore`
+
+    Prevents Git from tracking files.
+
+They have completely different jobs.
+
+---
+
+# 79. Compose Project Naming
+
+Suppose directory/project:
+
+    compose-practice
+
+Compose may create:
+
+    compose-practice_default
+
+network
+
+and:
+
+    compose-practice_postgres-data
+
+volume
+
+Container:
+
+    compose-practice-postgres-1
+
+The naming is generated from the Compose project and service names.
+
+---
+
+# 80. Full Compose Architecture We Practiced
+
+We built:
+
+    compose-practice
+          │
+          ├── Network
+          │     └── compose-practice_default
+          │
+          ├── PostgreSQL container
+          │     └── postgres:5432
+          │
+          ├── Client container
+          │     └── psql client
+          │
+          └── Volume
+                └── compose-practice_postgres-data
+
+---
+
+# 81. Full Container Communication Diagram
+
+    ┌───────────────────────────────────────────────┐
+    │              Docker Compose                  │
+    │                                               │
+    │        compose-practice_default               │
+    │                                               │
+    │   ┌───────────────┐                           │
+    │   │    client     │                           │
+    │   │               │                           │
+    │   │ psql          │                           │
+    │   └───────┬───────┘                           │
+    │           │                                   │
+    │           │ postgres:5432                    │
+    │           ▼                                   │
+    │   ┌───────────────┐                           │
+    │   │   postgres    │                           │
+    │   │               │                           │
+    │   │ PostgreSQL    │                           │
+    │   │     :5432     │                           │
+    │   └───────┬───────┘                           │
+    │           │                                   │
+    │           ▼                                   │
+    │   ┌─────────────────┐                         │
+    │   │ postgres-data   │                         │
+    │   │ Docker Volume   │                         │
+    │   └─────────────────┘                         │
+    │                                               │
+    └───────────────────────────────────────────────┘
+
+---
+
+# 82. Host vs Docker Network
+
+Very important concept.
+
+HOST:
+
+    localhost:8081
+         │
+         ▼
+    Nginx container :80
+
+DOCKER NETWORK:
+
+    Spring Boot container
+         │
+         │ postgres:5432
+         ▼
+    PostgreSQL container
+
+Inside Docker:
+
+    localhost
+
+means the current container.
+
+---
+
+# 83. Common Docker Commands
+
+## Images
+
+    docker images
+    docker image ls
+    docker pull nginx
+    docker build -t my-app:1.0 .
+    docker image history my-app:1.0
+    docker rmi image-name
+
+## Containers
+
+    docker ps
+    docker ps -a
+    docker run nginx
+    docker run -d nginx
+    docker create nginx
+    docker start container
+    docker stop container
+    docker rm container
+    docker rm -f container
+    docker exec -it container bash
+
+## Networks
+
+    docker network ls
+    docker network create practice-network
+    docker network inspect practice-network
+    docker network rm practice-network
+
+## Volumes
+
+    docker volume ls
+    docker volume create nginx-data
+    docker volume inspect nginx-data
+    docker volume rm nginx-data
+
+## Compose
+
+    docker compose up
+    docker compose up -d
+    docker compose down
+    docker compose down -v
+    docker compose ps
+    docker compose ps -a
+    docker compose logs
+    docker compose config
+    docker compose exec SERVICE COMMAND
+
+---
+
+# 84. Docker Command Mental Model
+
+Think:
+
+    docker run
+         ↓
+    "Create and start something"
+
+    docker ps
+         ↓
+    "What is running?"
+
+    docker ps -a
+         ↓
+    "What exists, running or stopped?"
+
+    docker stop
+         ↓
+    "Stop it"
+
+    docker start
+         ↓
+    "Start existing container"
+
+    docker rm
+         ↓
+    "Delete container"
+
+    docker images
+         ↓
+    "What images do I have?"
+
+    docker build
+         ↓
+    "Build my own image"
+
+    docker volume
+         ↓
+    "Manage persistent storage"
+
+    docker network
+         ↓
+    "Manage container communication"
+
+    docker compose
+         ↓
+    "Manage multiple services together"
+
+---
+
+# 85. Docker vs Virtual Machine
+
+Docker container:
+
+    Shares host kernel
+    Lightweight
+    Starts quickly
+    Isolated process environment
+
+Virtual Machine:
+
+    Includes guest operating system
+    More resource-heavy
+    Stronger full-OS isolation
+
+Simplified:
+
+    VM:
+
+    Hardware
+       ↓
+    Host OS
+       ↓
+    Hypervisor
+       ↓
+    Guest OS
+       ↓
+    Application
+
+
+    Docker:
+
+    Hardware
+       ↓
+    Host OS
+       ↓
+    Docker
+       ↓
+    Container
+       ↓
+    Application
+
+---
+
+# 86. Docker Image vs Dockerfile
+
+Dockerfile:
+
+    Instructions
+
+Image:
+
+    Result of building those instructions
+
+Example:
+
+    Dockerfile
+       ↓
+    docker build
+       ↓
+    Image
+       ↓
+    docker run
+       ↓
+    Container
+
+---
+
+# 87. Volume vs Image vs Container Storage
+
+## Image
+
+Contains application/files needed to create containers.
+
+    Image
+       ↓
+    reusable
+
+## Container writable layer
+
+    Container
+       ↓
+    temporary changes
+       ↓
+    deleted with container
+
+## Volume
+
+    Volume
+       ↓
+    persistent data
+       ↓
+    independent of container
+
+---
+
+# 88. Bind Mount vs Volume
+
+Use Volume when:
+
+    Database
+    Persistent application data
+    Docker-managed storage
+
+Use Bind Mount when:
+
+    Development source code
+    Local configuration
+    Files you want to edit directly on host
+
+---
+
+# 89. Example Real Application Architecture
+
+Later, MoneyLog can look like:
+
+    ┌──────────────────────────────────────────┐
+    │              Docker Compose             │
+    │                                          │
+    │   ┌────────────────┐                     │
+    │   │ Spring Boot    │                     │
+    │   │ Backend        │                     │
+    │   │ :8080          │                     │
+    │   └───────┬────────┘                     │
+    │           │                              │
+    │           │ postgres:5432                │
+    │           ▼                              │
+    │   ┌────────────────┐                     │
+    │   │ PostgreSQL     │                     │
+    │   │ :5432          │                     │
+    │   └───────┬────────┘                     │
+    │           │                              │
+    │           ▼                              │
+    │   ┌────────────────┐                     │
+    │   │ postgres-data  │                     │
+    │   │ Volume         │                     │
+    │   └────────────────┘                     │
+    │                                          │
+    └──────────────────────────────────────────┘
+
+Browser:
+
+    Browser
+       ↓
+    localhost:8080
+       ↓
+    Spring Boot container
+
+Spring Boot:
+
+    jdbc:postgresql://postgres:5432/moneylog_db
+
+NOT:
+
+    jdbc:postgresql://localhost:5432/moneylog_db
+
+because PostgreSQL is inside another container.
+
+---
+
+# 90. Typical Docker Development Flow
+
+For a Spring Boot application:
+
+    Source Code
+         ↓
+    Dockerfile
+         ↓
+    docker build
+         ↓
+    Docker Image
+         ↓
+    docker compose
+         ↓
+    Spring Boot Container
+         │
+         │ Docker Network
+         ▼
+    PostgreSQL Container
+         │
+         ▼
+    PostgreSQL Volume
+
+---
+
+# 91. Troubleshooting Checklist
+
+## Port already in use
+
+Error:
+
+    address already in use
+
+Check:
+
+    sudo lsof -i :8080
+
+or:
+
+    ss -ltnp | grep :8080
+
+Then stop the process or use another host port.
+
+---
+
+## Container not running
+
+Check:
+
+    docker ps -a
+
+Check logs:
+
+    docker logs container-name
+
+Compose:
+
+    docker compose logs service-name
+
+---
+
+## Container exits immediately
+
+Remember:
+
+    Container runs while main process runs.
+
+Check:
+
+    docker ps -a
+
+Look at:
+
+    Exited (1)
+
+Then:
+
+    docker logs container-name
+
+---
+
+## Cannot connect between containers
+
+Check:
+
+    docker network ls
+
+Then:
+
+    docker network inspect network-name
+
+Make sure both containers are on the same network.
+
+With Compose, check:
+
+    docker compose ps
+
+and use the service name.
+
+---
+
+## Database data disappeared
+
+Check whether a volume was used:
+
+    docker volume ls
+
+Be careful with:
+
+    docker compose down -v
+
+because `-v` removes Compose-managed volumes.
+
+---
+
+# 92. Commands We Practiced
+
+## Nginx
+
+    docker run -d --name my-nginx -p 8081:80 nginx
+
+## Custom image
+
+Dockerfile:
+
+    FROM nginx:latest
+
+    COPY index.html /usr/share/nginx/html/index.html
+
+Build:
+
+    docker build -t my-nginx-app:1.0 .
+
+Run:
+
+    docker run -d \
+      --name my-nginx-custom \
+      -p 8081:80 \
+      my-nginx-app:1.0
+
+## Volume
+
+    docker volume create nginx-data
+
+    docker volume inspect nginx-data
+
+    docker run -d \
+      --name my-nginx-volume \
+      -p 8081:80 \
+      -v nginx-data:/usr/share/nginx/html \
+      nginx
+
+## Bind Mount
+
+    mkdir html
+
+    nano html/index.html
+
+    docker run -d \
+      --name my-nginx-bind \
+      -p 8081:80 \
+      -v "$(pwd)/html:/usr/share/nginx/html" \
+      nginx
+
+## Network
+
+    docker network create practice-network
+
+    docker run -d \
+      --name web-server \
+      --network practice-network \
+      nginx
+
+    docker run -d \
+      --name client \
+      --network practice-network \
+      nginx
+
+Inside client:
+
+    curl http://web-server
+
+## Compose
+
+    docker compose up -d
+
+    docker compose ps
+
+    docker compose down
+
+    docker compose config
+
+    docker compose exec client bash
+
+---
+
+# 93. Our Compose PostgreSQL Practice
+
+compose.yaml:
+
+    services:
+      postgres:
+        image: postgres:18
+        environment:
+          POSTGRES_DB: ${POSTGRES_DB}
+          POSTGRES_USER: ${POSTGRES_USER}
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        volumes:
+          - postgres-data:/var/lib/postgresql
+
+      client:
+        image: postgres:18
+        depends_on:
+          - postgres
+        command: ["sleep", "infinity"]
+
+    volumes:
+      postgres-data:
+
+.env:
+
+    POSTGRES_DB=moneylog_db
+    POSTGRES_USER=moneylog_user
+    POSTGRES_PASSWORD=moneylog123
+
+.gitignore:
+
+    .env
+
+Start:
+
+    docker compose up -d
+
+Check:
+
+    docker compose ps
+
+Connect from client:
+
+    docker compose exec client \
+      psql \
+      -h postgres \
+      -U moneylog_user \
+      -d moneylog_db
+
+Inside PostgreSQL:
+
+    \l
+
+List databases.
+
+    \dt
+
+List tables.
+
+    \q
+
+Quit PostgreSQL.
+
+---
+
+# 94. The Most Important Docker Concepts to Remember
+
+If you forget everything else, remember this:
+
+    Dockerfile
+        ↓
+    Image
+        ↓
+    Container
+
+
+    Volume
+        ↓
+    Persistent data
+
+
+    Bind Mount
+        ↓
+    Host folder ↔ Container folder
+
+
+    Network
+        ↓
+    Container ↔ Container
+
+
+    Port mapping
+        ↓
+    Host ↔ Container
+
+
+    Compose
+        ↓
+    Multiple containers/services together
+
+
+    .env
+        ↓
+    Configuration/secrets
+
+
+    Service name
+        ↓
+    Container-to-container hostname
+
+---
+
+# 95. One Big Picture
+
+    ┌─────────────────────────────────────────────┐
+    │                 Linux Host                  │
+    │                                             │
+    │   Browser                                  │
+    │      │                                      │
+    │      │ localhost:8080                      │
+    │      ▼                                      │
+    │  ┌──────────────────────────────────────┐   │
+    │  │          Docker Compose              │   │
+    │  │                                      │   │
+    │  │  ┌──────────────┐                    │   │
+    │  │  │ Spring Boot  │                    │   │
+    │  │  │ Container    │                    │   │
+    │  │  └──────┬───────┘                    │   │
+    │  │         │                            │   │
+    │  │         │ postgres:5432              │   │
+    │  │         ▼                            │   │
+    │  │  ┌──────────────┐                    │   │
+    │  │  │ PostgreSQL   │                    │   │
+    │  │  │ Container    │                    │   │
+    │  │  └──────┬───────┘                    │   │
+    │  │         │                            │   │
+    │  │         ▼                            │   │
+    │  │  ┌──────────────┐                    │   │
+    │  │  │ Docker       │                    │   │
+    │  │  │ Volume       │                    │   │
+    │  │  └──────────────┘                    │   │
+    │  │                                      │   │
+    │  └──────────────────────────────────────┘   │
+    │                                             │
+    └─────────────────────────────────────────────┘
+
+---
+
+# 96. Learning Progress
+
+Completed:
+
+    [✓] What is Docker
+    [✓] Docker installation/service
+    [✓] Docker images
+    [✓] Docker containers
+    [✓] docker run
+    [✓] docker create
+    [✓] docker start
+    [✓] docker stop
+    [✓] docker rm
+    [✓] docker exec
+    [✓] Dockerfile
+    [✓] FROM
+    [✓] COPY
+    [✓] docker build
+    [✓] Image tags
+    [✓] Build cache
+    [✓] Image layers/history
+    [✓] Container lifecycle
+    [✓] Host vs container ports
+    [✓] Docker volumes
+    [✓] Volume persistence
+    [✓] Bind mounts
+    [✓] Docker networks
+    [✓] Container-to-container communication
+    [✓] Docker DNS/service names
+    [✓] Docker Compose
+    [✓] Compose services
+    [✓] Compose networks
+    [✓] Compose volumes
+    [✓] PostgreSQL with Compose
+    [✓] depends_on
+    [✓] Environment variables
+    [✓] .env
+    [✓] .gitignore
+    [✓] docker compose config
+    [✓] PostgreSQL container-to-container connection
+
+NEXT:
+
+    [ ] Spring Boot Dockerfile
+    [ ] Build Spring Boot Docker image
+    [ ] Run Spring Boot container
+    [ ] Connect Spring Boot → PostgreSQL
+    [ ] Spring Boot + PostgreSQL Compose
+    [ ] Health checks
+    [ ] Docker Compose profiles
+    [ ] Docker networking deeper
+    [ ] Multi-stage Docker builds
+    [ ] Docker image optimization
+    [ ] Docker logs/debugging
+    [ ] Docker security basics
+    [ ] Dockerizing React frontend
+    [ ] Full-stack Docker Compose
+    [ ] Production Docker concepts
+    [ ] Deployment
